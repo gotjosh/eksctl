@@ -84,7 +84,7 @@ func (c *ClusterProvider) ListClusters(chunkSize int, output string) error {
 }
 
 func (c *ClusterProvider) doListClusters(chunkSize int64, printer printers.OutputPrinter) error {
-	allClusterNames := []*string{}
+	allClusterNames := []*map[string]string{}
 
 	getFunc := func(chunkSize int64, nextToken string) ([]*string, *string, error) {
 		input := &awseks.ListClustersInput{MaxResults: &chunkSize}
@@ -104,7 +104,11 @@ func (c *ClusterProvider) doListClusters(chunkSize int64, printer printers.Outpu
 		if err != nil {
 			return err
 		}
-		allClusterNames = append(allClusterNames, clusters...)
+
+		for _, clusterName := range clusters {
+			allClusterNames = append(allClusterNames, &map[string]string{"name": *clusterName, "region": c.Spec.Region})
+		}
+
 		if nextToken != nil && *nextToken != "" {
 			token = *nextToken
 		} else {
@@ -218,7 +222,10 @@ func addSummaryTableColumns(printer *printers.TablePrinter) {
 }
 
 func addListTableColumns(printer *printers.TablePrinter) {
-	printer.AddColumn("NAME", func(c *string) string {
-		return *c
+	printer.AddColumn("NAME", func(c *map[string]string) string {
+		return (*c)["name"]
+	})
+	printer.AddColumn("REGION", func(c *map[string]string) string {
+		return (*c)["region"]
 	})
 }
